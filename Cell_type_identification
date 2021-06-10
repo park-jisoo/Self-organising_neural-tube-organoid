@@ -1,0 +1,260 @@
+library(Seurat)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(openxlsx)
+library(ggraph)
+library(devtools)
+library(org.Mm.eg.db)
+
+
+
+D3.data <- Read10X(data.dir = "D:/mar20/scRNAseq/raw_feature_bc_matrix/D3")
+NENT.data <- Read10X(data.dir = "D:/mar20/scRNAseq/raw_feature_bc_matrix/NE")
+SENT.data <- Read10X(data.dir = "D:/mar20/scRNAseq/raw_feature_bc_matrix/SENT")
+
+# Set up control (D3) object
+D3 <- CreateSeuratObject(counts = D3.data, project = "NeuralTube_D3", min.cells = 3, min.features = 200)
+D3[["percent.mt"]] <- PercentageFeatureSet(D3, pattern = "^mt-")
+
+ggplot(D3@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))+ scale_x_continuous(trans='log10')+scale_y_continuous(trans='log10')
+ggplot(D3@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))
+D3 <- subset(D3, subset = nFeature_RNA > 3000 & nFeature_RNA < 8000 & percent.mt < 10)
+ggplot(D3@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))+ scale_x_continuous(trans='log10')+scale_y_continuous(trans='log10')
+ggplot(D3@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))
+D3 <- subset(D3, subset = nFeature_RNA > 3500 & nFeature_RNA < 7500 & percent.mt < 7.5)
+
+
+plot1 <-FeatureScatter(D3, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <-FeatureScatter(D3, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1+plot2
+
+# D3 <- NormalizeData(D3)
+D3 <- NormalizeData(D3, normalization.method = "LogNormalize", scale.factor = 10000, verbose = FALSE)
+D3 <- FindVariableFeatures(D3, selection.method = "vst", nfeatures = 2000)
+
+# Set up stiumulated_1 (NE) object
+NENT <- CreateSeuratObject(counts = NENT.data, project = "NeuralTube_NENT", min.cells = 3, min.features = 200)
+NENT[["percent.mt"]] <- PercentageFeatureSet(NENT, pattern = "^mt-")
+
+ggplot(NENT@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))+ scale_x_continuous(trans='log10')+scale_y_continuous(trans='log10')
+ggplot(NENT@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))
+NENT <- subset(NENT, subset = nFeature_RNA > 3000 & nFeature_RNA < 8000 & percent.mt < 10)
+ggplot(NENT@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))+ scale_x_continuous(trans='log10')+scale_y_continuous(trans='log10')
+ggplot(NENT@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))
+NENT <- subset(NENT, subset = nFeature_RNA > 3500 & nFeature_RNA < 7500 & percent.mt < 7.5)
+
+
+plot1 <-FeatureScatter(NENT, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <-FeatureScatter(NENT, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1+plot2
+
+# NENT <- NormalizeData(NENT)
+NENT <- NormalizeData(NENT, normalization.method = "LogNormalize", scale.factor = 10000, verbose = FALSE)
+NENT <- FindVariableFeatures(NENT, selection.method = "vst", nfeatures = 2000)
+
+# Set up stimulated_2 (SENT) object
+SENT <- CreateSeuratObject(counts = SENT.data, project = "NeuralTube_SENT", min.cells = 3, min.features = 200)
+SENT[["percent.mt"]] <- PercentageFeatureSet(SENT, pattern = "^mt-")
+
+ggplot(SENT@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))+ scale_x_continuous(trans='log10')+scale_y_continuous(trans='log10')
+ggplot(SENT@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))
+SENT <- subset(SENT, subset = nFeature_RNA > 3000 & nFeature_RNA < 8000 & percent.mt < 10)
+ggplot(SENT@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))+ scale_x_continuous(trans='log10')+scale_y_continuous(trans='log10')
+ggplot(SENT@meta.data) + geom_point(aes(x=nFeature_RNA, y=percent.mt, color=nCount_RNA))
+SENT <- subset(SENT, subset = nFeature_RNA > 3500 & nFeature_RNA < 7500 & percent.mt < 7.5)
+
+
+plot1 <-FeatureScatter(SENT, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <-FeatureScatter(SENT, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1+plot2
+
+# SENT <- NormalizeData(SENT)
+SENT <- NormalizeData(SENT, normalization.method = "LogNormalize", scale.factor = 10000, verbose = FALSE)
+SENT <- FindVariableFeatures(SENT, selection.method = "vst", nfeatures = 2000)
+
+
+# Combining 3 datasets into 1.
+
+NeuralTube.list <- merge(D3, y = c(NENT, SENT), add.cell.ids = c("D3", "NENT", "SENT"), project = "NeuralTube")
+NeuralTube.list
+
+head(colnames(NeuralTube.list))
+
+tail(colnames(NeuralTube.list))
+
+unique(sapply(X = strsplit(colnames(NeuralTube.list), split = "_"), FUN = "[", 1))
+
+table(NeuralTube.list$orig.ident)
+
+
+# Adding sample name to each cell
+D3 <- RenameCells(object = D3, add.cell.id = "D3")
+NENT <- RenameCells(object = NENT, add.cell.id = "NENT")
+SENT <- RenameCells(object = SENT, add.cell.id = "SENT")
+
+# Perform integration
+
+
+NeuralTube.anchors <- FindIntegrationAnchors(object.list = list(D3, NENT, SENT), dims = 1:30)
+NeuralTube.integrated <- IntegrateData(anchorset = NeuralTube.anchors, dims = 1:30)
+
+DefaultAssay(NeuralTube.integrated) <- "integrated"
+
+# Removing confounders: Batch effect, percent.mt, cell cycling scoring and regressoin
+
+# Removing confounders like batch effect, cell cycle effect, nGene and uUM: regression
+# https://github.com/satijalab/seurat/issues/462
+#
+# Following cell-cycle scoring and regression tutorial on Seurat, Satija lab 
+# https://satijalab.org/seurat/v3.1/cell_cycle_vignette.html
+
+#[1] regress batchid, nUMI, percent.mt
+
+NeuralTube.integrated <- ScaleData(object = NeuralTube.integrated, vars.to.regress = c("batchid", "nUMI", "percent.mt"))
+
+#  
+
+# [2] cell-cycle scoring and regression (https://satijalab.org/seurat/v3.1/cell_cycle_vignette.html) ###
+
+#converting human genes to mouse genes and vice versa (https://www.r-bloggers.com/converting-mouse-to-human-gene-names-with-biomart-package/)
+# Basic function to convert human to mouse gene names
+
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#   install.packages("BiocManager")
+# 
+# BiocManager::install("biomaRt")
+library(biomaRt)
+# Basic function to convert mouse to human gene names
+
+convertMouseGeneList <- function(x){
+  
+  require("biomaRt")
+  human = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+  mouse = useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+  
+  genesV2 = getLDS(attributes = c("mgi_symbol"), filters = "mgi_symbol", values = x , mart = mouse, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
+  humanx <- unique(genesV2[, 2])
+  
+  # Print the first 6 genes found to the screen
+  print(head(humanx))
+  return(humanx)
+}
+
+convertHumanGeneList <- function(x){
+  
+  require("biomaRt")
+  human = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+  mouse = useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+  
+  genesV2 = getLDS(attributes = c("hgnc_symbol"), filters = "hgnc_symbol", values=x, mart = human, attributesL = c("mgi_symbol"), martL = mouse, uniqueRows=T)
+  
+  humanx <- unique(genesV2[, 2])
+  
+  # Print the first 6 genes found to the screen
+  print(head(humanx))
+  return(humanx)
+}
+
+#https://github.com/satijalab/seurat/issues/2493
+
+m.s.genes <- convertHumanGeneList(cc.genes.updated.2019$s.genes)
+m.g2m.genes <- convertHumanGeneList(cc.genes.updated.2019$g2m.genes)
+
+#[2-0: Cell cycling scoring]
+
+#Pass whatever gene list you're using, could be cc.genes$s.genes and cc.genes$g2m.genes - but I have those list above.
+
+NeuralTube.integrated <- CellCycleScoring(NeuralTube.integrated, s.features = m.s.genes, g2m.features = m.g2m.genes, set.ident = TRUE)
+
+#view cell cycle scores and phase assignments
+head(NeuralTube.integrated[[]])
+
+RidgePlot(NeuralTube.integrated, features=c("Ung", "Top2a", "Nasp", "Mki67", "Aurkb"), ncol = 2)
+head(x=NeuralTube.integrated@meta.data)
+
+# Running a PCA on cell cycle genes reveals, unsurprisingly, that cells separate entirely by phase (all spread out on PCA plot)
+NeuralTube.integrated <- RunPCA(NeuralTube.integrated, features=c(m.s.genes, m.g2m.genes))
+DimPlot(NeuralTube.integrated, reduction = "pca",label = TRUE)
+
+#[2-1] Regress out cell cycle scores during data scaling
+
+NeuralTube.integrated <- ScaleData(NeuralTube.integrated, vars.to.regress = c("S.Score", "G2M.Score"), features = rownames(NeuralTube.integrated))
+# Now, a PCA on the variable genes no longer returns components associated with cell cycle
+NeuralTube.integrated <- RunPCA(NeuralTube.integrated, features = VariableFeatures(NeuralTube.integrated), nfeatures.print = 10)
+# When running a PCA on only cell cycle genes, cells no longer separate by cell-cycle phase
+NeuralTube.integrated <- RunPCA(NeuralTube.integrated, features = c(m.s.genes, m.g2m.genes))
+DimPlot(NeuralTube.integrated, reduction = "pca", label = TRUE)
+
+
+
+# Run the standard workflow for visualization and clustering
+NeuralTube.integrated <- ScaleData(NeuralTube.integrated, verbose = FALSE)
+NeuralTube.integrated <- RunPCA(NeuralTube.integrated, npcs = 30, verbose = FALSE)
+
+
+### clustree: finding the right resolution ###
+
+install.packages('clustree')
+install.packages('ggraph')
+install.packages('ggplot2')
+library(ggraph)
+library(ggplot2)
+suppressPackageStartupMessages(library("Seurat"))
+
+
+
+# # final clustering resolution
+NeuralTube.integrated <- FindClusters(NeuralTube.integrated, resolution = 1.0)
+
+
+# Visualization
+
+p1 <- DimPlot(NeuralTube.integrated, reduction = "umap", group.by = "orig.ident")
+p2 <- DimPlot(NeuralTube.integrated, reduction = "umap", label = TRUE)
+
+plot_grid(p1, p2)
+
+DimPlot(NeuralTube.integrated, reduction = "umap", split.by = "orig.ident", label = TRUE)
+
+
+
+
+# # Identify the 20 most highly variable genes
+#
+top20 <- head(VariableFeatures(NeuralTube.integrated), 20)
+
+
+# find markers for every cluster compared to all remaining cells, report only the positive ones
+NeuralTube.markers <- FindAllMarkers(NeuralTube.integrated, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+NeuralTube.markers %>% group_by(cluster) %>% top_n(n = 20, wt = avg_logFC)
+
+
+# ### labeling each cell type name for each cluster ###
+
+final.celltype.of.cluster <- c("Neuroectoderm", "Neuroectoderm", "Spinal cord", "Epiblast", "Epiblast", "Pluripotent cells", "Surface ectoderm", 
+                               "Caudal epiblast", "Epiblast", "Caudal epiblast", "Midbrain", "Epiblast", "Proliferating cells", "Hindbrain", "Posterior mesoderm", "Mid/hindbrain")
+names(final.celltype.of.cluster) <- levels(NeuralTube.integrated)
+NeuralTube.integrated.final.celltype <- RenameIdents(NeuralTube.integrated, final.celltype.of.cluster)
+DimPlot(NeuralTube.integrated.final.celltype, reduction = "umap", label = TRUE, pt.size = 0.5)
+
+
+#Final cell type for each cluster 
+# 0: Neuroectoderm
+# 1: Neuroectoderm
+# 2: Spinal cord
+# 3: Epiblast
+# 4: Epiblast
+# 5: Pluripotent cell
+# 6: Surface ectoderm
+# 7: Caudal epiblast
+# 8: Epiblast
+# 9: Caudal epiblast
+# 10: Midbrain
+# 11: Epiblast
+# 12: Proliferating cells
+# 13: Hindbrain
+# 14: Posterior mesoderm
+# 15: Mid/hindbrain
+
+
